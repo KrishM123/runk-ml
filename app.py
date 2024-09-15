@@ -64,7 +64,7 @@ def autoencoder():
 
 
 @app.route('/encode_review', methods=['POST'])
-def encoder():
+def encode_review():
     data = request.get_json()
 
     # Create a tensor from the input JSON data
