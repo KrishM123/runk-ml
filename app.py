@@ -2,7 +2,8 @@ import torch
 from models.autoencoder import Autoencoder
 from models.MLP import MLP
 from flask import Flask, request, jsonify
-
+from models.embed_reviews import SBERT_embedding_model
+from flask_cors import CORS
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -17,7 +18,52 @@ mlp_model.eval()
 
 
 # Define a route
-@app.route('/')
+@app.route('/', methods=['POST'])
+def encoder():
+    data = request.get_json()
+
+    # Create a tensor from the input JSON data
+    input_tensor = torch.tensor(data["input"], dtype=torch.float32) / 100
+
+    # Pass the input to the autoencoder model to get the encoded result
+    res = autoencoder_model.encode(input_tensor)
+
+    # Convert the result tensor to a Python list (or NumPy array)
+    res_list = res.tolist()  # Converts the tensor to a list
+
+    # Return the result as a JSON response
+    return jsonify({"result": res_list}), 200
+
+@app.route('/decoder', methods=['POST'])
+def decoder():
+    data = request.get_json()
+
+    # Create a tensor from the input JSON data
+    input_tensor = torch.tensor(data["input"], dtype=torch.float32)
+
+    # Pass the input to the autoencoder model to get the decoded result
+    res = autoencoder_model.decode(input_tensor) * 100
+
+    # Convert the result tensor to a Python list (or NumPy array)
+    res_list = res.tolist()  # Converts the tensor to a list
+
+    # Return the result as a JSON response
+    return jsonify({"result": res_list}), 200
+
+@app.route('/autoencoder', methods=['POST'])
+def autoencoder():
+    data = request.get_json()
+
+    res = torch.from_numpy(SBERT_embedding_model.encode(data["input"]))
+
+    # Convert the result tensor to a Python list (or NumPy array)
+    res_list = res.tolist()  # Converts the tensor to a list
+
+    # Return the result as a JSON response
+    return jsonify({"result": res_list}), 200
+
+
+@app.route('/encode_review', methods=['POST'])
 def encoder():
     data = request.get_json()
 
@@ -33,39 +79,7 @@ def encoder():
     # Return the result as a JSON response
     return jsonify({"result": res_list}), 200
 
-@app.route('/decoder')
-def decoder():
-    data = request.get_json()
-
-    # Create a tensor from the input JSON data
-    input_tensor = torch.tensor(data["input"], dtype=torch.float32)
-
-    # Pass the input to the autoencoder model to get the decoded result
-    res = autoencoder_model.decode(input_tensor)
-
-    # Convert the result tensor to a Python list (or NumPy array)
-    res_list = res.tolist()  # Converts the tensor to a list
-
-    # Return the result as a JSON response
-    return jsonify({"result": res_list}), 200
-
-@app.route('/autoencoder')
-def autoencoder():
-    data = request.get_json()
-
-    # Create a tensor from the input JSON data
-    input_tensor = torch.tensor(data["input"], dtype=torch.float32)
-
-    # Pass the input to the autoencoder model to get the result
-    res = autoencoder_model(input_tensor)
-
-    # Convert the result tensor to a Python list (or NumPy array)
-    res_list = res.tolist()  # Converts the tensor to a list
-
-    # Return the result as a JSON response
-    return jsonify({"result": res_list}), 200
-
-@app.route('/mlp')
+@app.route('/mlp', methods=['POST'])
 def mlp():
     data = request.get_json()
 
